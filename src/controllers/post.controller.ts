@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import asyncHandler from "../utils/asyncHandler";
 import Post from "../models/post.model";
+import { sendSuccess } from "../utils/sendSuccess";
+import AppError from "../utils/AppError";
 
 // Create a new post
 export const createNewPost = asyncHandler(
@@ -9,7 +11,10 @@ export const createNewPost = asyncHandler(
     const imageUrl = (req.file as any)?.path; // <- important for TS
 
     if (!caption) {
-      throw new Error("Caption is required");
+      throw new AppError("Caption is required",400);
+    }
+    if (!imageUrl) {
+      throw new AppError("Image upload failed or missing", 400);
     }
 
     const post = await Post.create({
@@ -18,9 +23,8 @@ export const createNewPost = asyncHandler(
       imageUrl: imageUrl, // save Cloudinary URL to DB
     });
 
-    console.log("📌 New Post created:", post._id, "Image URL:", imageUrl);
-
-    res.status(201).json({ success: true, post });
+    console.log("New Post created:", post._id, "Image URL:", imageUrl);
+    return sendSuccess(res,post,"posted sucessfully");
   }
 );
 
@@ -30,7 +34,7 @@ export const getPosts = asyncHandler(async (_req: Request, res: Response) => {
     .populate("user", "name email")
     .sort({ createdAt: -1 });
 
-  res.status(200).json({ success: true, posts });
+  return sendSuccess(res, { posts }, "Posts fetched successfully");
 });
 
 // Like/unlike a post
@@ -39,19 +43,27 @@ export const likePost = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user._id;
 
   const post = await Post.findById(id);
-  if (!post) throw new Error("Post not found");
+  if (!post) throw new AppError("Post not found", 404);
 
-  const alreadyLiked = post.likes.includes(userId as any);
+  const alreadyLiked = post.likes.includes(userId);
+
   if (alreadyLiked) {
     post.likes = post.likes.filter(
-      (uid) => uid.toString() !== userId.toString()
+      (uid: any) => uid.toString() !== userId.toString()
     );
   } else {
-    post.likes.push(userId as any);
+    post.likes.push(userId);
   }
 
   await post.save();
-  console.log(`💖 Post ${id} liked/unliked by user: ${userId}`);
 
-  res.status(200).json({ success: true, post });
+  console.log(`Post ${id} liked/unliked by user: ${userId}`);
+
+  return sendSuccess(
+    res,
+    { post },
+    alreadyLiked ? "Post unliked successfully" : "Post liked successfully",
+    200
+  );
 });
+
