@@ -67,3 +67,25 @@ export const likePost = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+export const addComment=asyncHandler(async(req:Request,res:Response)=>{
+   const {text}=req.body;
+   const {id} = req.params;
+   const userId = req.user._id;
+
+   const post =await Post.findById(id);
+   if(!post) throw new AppError("post not found",404);
+
+   post.comments.push({user: userId, text,createdAt: new Date()});
+   await post.save();
+
+   // Get only the newly added comment
+   const newComment = post.comments[post.comments.length - 1];
+
+   return sendSuccess(
+     res,
+     { comments: newComment },
+     "Comment added successfully",
+     201
+   );
+ });
+
