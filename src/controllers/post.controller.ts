@@ -3,6 +3,8 @@ import asyncHandler from "../utils/asyncHandler";
 import Post from "../models/post.model";
 import { sendSuccess } from "../utils/sendSuccess";
 import AppError from "../utils/AppError";
+import Comment from "../models/comment.model";
+import Like from "../models/like.model"
 
 // Create a new post
 export const createNewPost = asyncHandler(
@@ -39,53 +41,51 @@ export const getPosts = asyncHandler(async (_req: Request, res: Response) => {
 
 // Like/unlike a post
 export const likePost = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const { id } = req.params; // postId
   const userId = req.user._id;
 
+  // Check if post exists
   const post = await Post.findById(id);
   if (!post) throw new AppError("Post not found", 404);
 
-  const alreadyLiked = post.likes.includes(userId);
+  // Check if the like already exists
+  const like = await Like.findOne({ post: id, user: userId });
 
-  if (alreadyLiked) {
-    post.likes = post.likes.filter(
-      (uid: any) => uid.toString() !== userId.toString()
-    );
+  let message = "";
+
+  if (like) {
+    // Unlike
+    await Like.deleteOne({ _id: like._id });
+    message = "Post unliked successfully";
   } else {
-    post.likes.push(userId);
+    // Like
+    await Like.create({ post: id, user: userId });
+    message = "Post liked successfully";
   }
 
-  await post.save();
+  // Count updated likes
+  const totalLikes = await Like.countDocuments({ post: id });
 
-  console.log(`Post ${id} liked/unliked by user: ${userId}`);
+  console.log(`Post ${id} like status changed by user: ${userId}`);
 
-  return sendSuccess(
-    res,
-    { post },
-    alreadyLiked ? "Post unliked successfully" : "Post liked successfully",
-    200
-  );
+  return sendSuccess(res, { totalLikes }, message, 200);
 });
 
-export const addComment=asyncHandler(async(req:Request,res:Response)=>{
-   const {text}=req.body;
-   const {id} = req.params;
-   const userId = req.user._id;
+export const addComment = asyncHandler(async (req: Request, res: Response) => {
+  const { text } = req.body;
+  const { id} = req.params;
+  const userId = req.user._id;
+  const postId=id;
+  const postExists = await Post.findById(postId);
+  if (!postExists) throw new AppError("Post not found", 404);
 
-   const post =await Post.findById(id);
-   if(!post) throw new AppError("post not found",404);
+  const comment = await Comment.create({
+    user: userId,
+    post: postId,
+    text,
+  });
 
-   post.comments.push({user: userId, text,createdAt: new Date()});
-   await post.save();
+  return sendSuccess(res, {comment},"Comment added successfully" , 201);
+});
 
-   // Get only the newly added comment
-   const newComment = post.comments[post.comments.length - 1];
-
-   return sendSuccess(
-     res,
-     { comments: newComment },
-     "Comment added successfully",
-     201
-   );
- });
 
