@@ -6,13 +6,13 @@ It follows a clean architecture with controllers, services, repositories, utils,
 
 -- Features->
  
-- Authentication
+- Authentication->
 Register & login with JWT
 Password hashing (bcrypt)
 Protected routes using auth middleware
 Express-Validator for request validation
 
-- Post Management
+- Post Management->
 Create posts (caption + image)
 Cloudinary image upload
 Like/unlike posts
@@ -20,7 +20,7 @@ Commenting system
 Pagination for posts
 Clean service & controller architecture
 
-- Real-Time Chat System
+- Real-Time Chat System->
 1:1 private conversations
 Real-time messaging (Socket.IO)
 Typing indicator
@@ -28,7 +28,7 @@ Online/offline user tracking
 Message persistence in MongoDB
 Pagination for chat messages
 
-- Backend Architecture
+- Backend Architecture->
 TypeScript everywhere
 asyncHandler wrapper
 AppError for custom errors
@@ -37,3 +37,4 @@ sendSuccess / sendError response standard
 Modular folder structure
 Secure CORS setup
 JWT socket authentication
+
